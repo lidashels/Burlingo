@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <!-- Библиотека для чтения Excel-файлов -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>БурЛинго — Изучай бурятский играя</title>
+<style>
+  :root {
+    --primary: #2E7DFF;
+    --primary-dark: #1E5FD1;
+    --accent: #FFB800;
+    --success: #4CAF50;
+    --danger: #FF5252;
+    --bg: #F5F7FA;
+    --card: #FFFFFF;
+    --text: #1A1A2E;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+    --shadow: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 80px;
+  }
+
+  /* ===== Экраны ===== */
+  .screen { display: none; animation: fadeIn 0.3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== Авторизация ===== */
+  .auth-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #2E7DFF 0%, #1E5FD1 100%);
+    color: white;
+  }
+  .auth-logo {
+    font-size: 64px;
+    margin-bottom: 10px;
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .auth-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+  .auth-subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 30px; text-align: center; }
+  .auth-card {
+    background: white;
+    color: var(--text);
+    border-radius: 20px;
+    padding: 30px 24px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+  }
+  .auth-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .auth-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: var(--bg);
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .auth-tab.active { background: var(--primary); color: white; }
+  .input-group { margin-bottom: 14px; }
+  .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); }
+  .input-group input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    transition: 0.2s;
+  }
+  .input-group input:focus { outline: none; border-color: var(--primary); }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 8px;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ===== Верхняя панель ===== */
+  .topbar {
+    background: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-logo { font-size: 22px; font-weight: 800; color: var(--primary); }
+  .topbar-stats { display: flex; gap: 14px; align-items: center; }
+  .stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 6px 10px;
+    background: var(--bg);
+    border-radius: 20px;
+  }
+  .stat-badge.streak { background: #FFF4E0; color: #E67E00; }
+  .stat-badge.xp { background: #E3F2FD; color: var(--primary); }
+  .stat-badge.hearts { background: #FFEBEE; color: var(--danger); }
+
+  /* ===== Дашборд ===== */
+  .dashboard { padding: 20px 16px; max-width: 600px; margin: 0 auto; }
+  .welcome-card {
+    background: linear-gradient(135deg, #FFB800 0%, #FF9500 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .welcome-card h2 { font-size: 20px; margin-bottom: 6px; }
+  .welcome-card p { font-size: 14px; opacity: 0.95; }
+  .level-progress {
+    margin-top: 12px;
+    background: rgba(255,255,255,0.3);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .level-progress-bar {
+    height: 100%;
+    background: white;
+    transition: width 0.5s ease;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 20px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ===== Карта уроков ===== */
+  .path { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .lesson-node {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    border: 4px solid var(--border);
+    transition: 0.2s;
+  }
+  .lesson-node.available {
+    border-color: var(--primary);
+    animation: pulse 2s infinite;
+  }
+  .lesson-node.completed {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .lesson-node.locked {
+    background: #E5E7EB;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .lesson-node:active:not(.locked) { transform: scale(0.95); }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(46,125,255,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(46,125,255,0); }
+  }
+  .lesson-label {
+    position: absolute;
+    bottom: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--text-muted);
+  }
+  .lesson-node:nth-child(odd) { margin-left: -40px; }
+  .lesson-node:nth-child(even) { margin-right: -40px; }
+
+  .team-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .team-1 { background: #E8F5E9; color: #2E7D32; }
+  .team-2 { background: #FFF8E1; color: #F57C00; }
+  .team-3 { background: #FFEBEE; color: #C62828; }
+
+  /* ===== Экран урока ===== */
+  .lesson-screen { padding: 20px 16px; max-width: 600px; margin: 0 auto; }
+  .lesson-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .back-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .progress-bar {
+    flex: 1;
+    height: 12px;
+    background: var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), #66BB6A);
+    transition: width 0.4s ease;
+  }
+
+  .word-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .word-buryat {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+  .word-russian {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  .audio-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+  }
+  .audio-btn:hover { background: var(--primary-dark); }
+
+  .options { display: grid; gap: 10px; }
+  .option-btn {
+    background: white;
+    border: 2px solid var(--border);
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.2s;
+  }
+  .option-btn:hover { border-color: var(--primary); }
+  .option-btn.correct { background: #E8F5E9; border-color: var(--success); color: var(--success); }
+  .option-btn.wrong { background: #FFEBEE; border-color: var(--danger); color: var(--danger); }
+
+  /* ===== Профиль ===== */
+  .profile-screen { padding: 20px 16px; max-width: 600px; margin: 0 auto; }
+  .profile-header {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: white;
+    font-weight: 800;
+    margin: 0 auto 12px;
+  }
+  .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .profile-level { color: var(--text-muted); font-size: 14px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-icon { font-size: 28px; margin-bottom: 6px; }
+  .stat-value { font-size: 24px; font-weight: 800; }
+  .stat-label { font-size: 12px; color: var(--text-muted); }
+
+  .achievements {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .achievement {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .achievement:last-child { border-bottom: none; }
+  .achievement-icon { font-size: 28px; }
+  .achievement-info { flex: 1; }
+  .achievement-title { font-weight: 600; font-size: 14px; }
+  .achievement-desc { font-size: 12px; color: var(--text-muted); }
+  .achievement.locked { opacity: 0.4; }
+
+  /* ===== Нижняя навигация ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    z-index: 100;
+  }
+  .nav-item {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    transition: 0.2s;
+  }
+  .nav-item .nav-icon { font-size: 22px; }
+  .nav-item.active { color: var(--primary); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  /* ===== Модалка результата ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 20px;
+    padding: 30px 24px;
+    text-align: center;
+    max-width: 360px;
+    width: 100%;
+    animation: popIn 0.3s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal-icon { font-size: 64px; margin-bottom: 12px; }
+  .modal-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .modal-text { color: var(--text-muted); margin-bottom: 20px; }
+  .xp-gain {
+    display: inline-block;
+    background: #FFF4E0;
+    color: #E67E00;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 400px) {
+    .stat-badge { font-size: 12px; padding: 5px 8px; }
+    .word-buryat { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<!-- Кнопка загрузки Excel -->
+<div style="padding: 12px 16px; background: #FFF4E0; text-align: center;">
+  <label style="cursor: pointer; color: #E67E00; font-weight: 600;">
+    📗 Загрузить данные из Excel
+    <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadFromExcel(event)">
+  </label>
+  <span id="fileStatus" style="margin-left: 10px; font-size: 13px; color: #6B7280;"></span>
+</div>
+<!-- ===== ЭКРАН АВТОРИЗАЦИИ ===== -->
+<div id="authScreen" class="screen auth-screen active">
+  <div class="auth-logo">🐺</div>
+  <div class="auth-title">БурЛинго</div>
+  <div class="auth-subtitle">Изучай бурятский язык играя</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Вход</button>
+      <button class="auth-tab" data-tab="register">Регистрация</button>
+    </div>
+    <form id="authForm">
+      <div class="input-group" id="nameGroup" style="display:none">
+        <label>Имя</label>
+        <input type="text" id="authName" placeholder="Как тебя зовут?">
+      </div>
+      <div class="input-group">
+        <label>Email или логин</label>
+        <input type="text" id="authEmail" placeholder="user@example.com" required>
+      </div>
+      <div class="input-group">
+        <label>Пароль</label>
+        <input type="password" id="authPassword" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary" id="authSubmit">Войти</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== ГЛАВНЫЙ ЭКРАН ===== -->
+<div id="homeScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">🐺 БурЛинго</div>
+    <div class="topbar-stats">
+      <div class="stat-badge streak" title="Ежедневная серия">🔥 <span id="streakCount">0</span></div>
+      <div class="stat-badge xp" title="Опыт">⚡ <span id="xpCount">0</span></div>
+      <div class="stat-badge hearts" title="Жизни">❤️ <span id="heartsCount">5</span></div>
+    </div>
+  </div>
+
+  <div class="dashboard">
+    <div class="welcome-card">
+      <h2>Сайн байна! 👋 <span id="userName">Друг</span></h2>
+      <p>Уровень <span id="userLevel">1</span> · До следующего: <span id="xpToNext">100</span> XP</p>
+      <div class="level-progress">
+        <div class="level-progress-bar" id="levelBar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="section-title">📚 Путь изучения</div>
+    <div class="path" id="lessonPath"></div>
+  </div>
+</div>
+
+<!-- ===== ЭКРАН УРОКА ===== -->
+<div id="lessonScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="exitLesson()">✕</button>
+    <div class="progress-bar"><div class="progress-fill" id="lessonProgress" style="width:0%"></div></div>
+    <div class="stat-badge hearts">❤️ <span id="lessonHearts">5</span></div>
+  </div>
+  <div class="lesson-screen">
+    <div class="word-card">
+      <div class="word-buryat" id="wordBuryat">Сайн</div>
+      <div class="word-russian" id="wordRussian">Привет</div>
+      <button class="audio-btn" onclick="speakWord()">
+        🔊 <span>Прослушать</span>
+      </button>
+    </div>
+    <div class="section-title">Выбери правильный перевод:</div>
+    <div class="options" id="optionsContainer"></div>
+  </div>
+</div>
+
+<!-- ===== ЭКРАН ПРОФИЛЯ ===== -->
+<div id="profileScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">👤 Профиль</div>
+    <button class="back-btn" onclick="logout()" title="Выйти">🚪</button>
+  </div>
+  <div class="profile-screen">
+    <div class="profile-header">
+      <div class="avatar" id="profileAvatar">У</div>
+      <div class="profile-name" id="profileName">Пользователь</div>
+      <div class="profile-level">Уровень <span id="profileLevel">1</span></div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value" id="statXp">0</div>
+        <div class="stat-label">Всего XP</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-value" id="statStreak">0</div>
+        <div class="stat-label">Дней подряд</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-value" id="statWords">0</div>
+        <div class="stat-label">Слов изучено</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="statLessons">0</div>
+        <div class="stat-label">Уроков пройдено</div>
+      </div>
+    </div>
+
+    <div class="section-title">🏆 Достижения</div>
+    <div class="achievements" id="achievementsList"></div>
+  </div>
+</div>
+
+<!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
+<nav class="bottom-nav" id="bottomNav" style="display:none">
+  <button class="nav-item active" data-screen="homeScreen">
+    <span class="nav-icon">🏠</span>
+    <span>Главная</span>
+  </button>
+  <button class="nav-item" data-screen="profileScreen">
+    <span class="nav-icon">👤</span>
+    <span>Профиль</span>
+  </button>
+</nav>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== МОДАЛКА РЕЗУЛЬТАТА ===== -->
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">🎉</div>
+    <div class="modal-title" id="modalTitle">Урок пройден!</div>
+    <div class="modal-text" id="modalText">Отличная работа!</div>
+    <div class="xp-gain" id="modalXp">+20 XP</div>
+    <button class="btn btn-primary" onclick="closeModal()">Продолжить</button>
+  </div>
+</div>
+
+<script>
+// ============================================
+// 📦 ДАННЫЕ И КОНФИГУРАЦИЯ
+// ============================================
+
+// ============================================
+// 📗 ЗАГРУЗКА ИЗ EXCEL
+// ============================================
+
+// Сопоставление ID уроков и команд (можно настроить)
+const LESSON_TEAM_MAP = {
+  1: 1, 2: 1, 3: 1, 4: 1,           // Команда 1: Основы
+  5: 2, 6: 2, 7: 2,                  // Команда 2: Окружение
+  8: 3, 9: 3, 10: 3,                 // Команда 3: Контекст
+};
+
+// Иконки для уроков
+const LESSON_ICONS = {
+  1: '👋', 2: '👨‍👩‍👧', 3: '🔢', 4: '🎨',
+  5: '🍎', 6: '🐎', 7: '🌲',
+  8: '💬', 9: '🎎', 10: '📜',
+};
+
+async function loadFromExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const statusEl = document.getElementById('fileStatus');
+  statusEl.textContent = '⏳ Загрузка...';
+  
+  try {
+    // Читаем файл как ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Парсим Excel
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    
+    const lessons = [];
+    
+    // Проходим по каждому листу
+    workbook.SheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Конвертируем лист в JSON (первая строка = заголовки)
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+      
+      if (rows.length === 0) return;
+      
+      // Парсим имя листа: "1_Приветствия" → id=1, title="Приветствия"
+      const match = sheetName.match(/^(\d+)_(.+)$/);
+      let lessonId, lessonTitle;
+      
+      if (match) {
+        lessonId = parseInt(match[1]);
+        lessonTitle = match[2];
+      } else {
+        // Если формат не соответствует — используем имя листа как есть
+        lessonId = lessons.length + 1;
+        lessonTitle = sheetName;
+      }
+      
+      // Собираем слова
+      const words = rows.map(row => {
+        const word = {
+          buryat: row.buryat || row['buryat'] || row['Бурятский'] || '',
+          russian: row.russian || row['russian'] || row['Русский'] || '',
+        };
+        
+        // Опциональные поля
+        if (row.audio) word.audio = row.audio;
+        if (row.category) word.category = row.category;
+        if (row.image) word.image = row.image;
+        if (row.context) word.context = row.context; // для диалогов
+        
+        return word;
+      }).filter(w => w.buryat && w.russian); // убираем пустые строки
+      
+      if (words.length === 0) return;
+      
+      // Определяем тип урока по наличию полей
+      let type = 'flashcard';
+      if (rows[0].category) type = 'matching';
+      if (rows[0].context) type = 'dialog';
+      
+      lessons.push({
+        id: lessonId,
+        team: LESSON_TEAM_MAP[lessonId] || 1,
+        icon: LESSON_ICONS[lessonId] || '📚',
+        title: lessonTitle,
+        type: type,
+        words: words,
+      });
+    });
+    
+    // Сортируем уроки по ID
+    lessons.sort((a, b) => a.id - b.id);
+    
+    // Обновляем глобальный массив
+    LESSONS = lessons;
+    
+    // Сохраняем в localStorage, чтобы не загружать каждый раз
+    localStorage.setItem('burlingo_lessons', JSON.stringify(LESSONS));
+    
+    statusEl.textContent = `✅ Загружено: ${LESSONS.length} уроков, ${LESSONS.reduce((s, l) => s + l.words.length, 0)} слов`;
+    showToast(`📗 Загружено ${LESSONS.length} уроков!`, 'success');
+    
+    // Перерисовываем дашборд
+    if (user.email) renderDashboard();
+    
+  } catch (error) {
+    console.error('Ошибка загрузки Excel:', error);
+    statusEl.textContent = '❌ Ошибка загрузки';
+    showToast('Не удалось прочитать файл', 'error');
+  }
+}
+
+// Загрузка сохранённых данных при старте
+function loadSavedLessons() {
+  const saved = localStorage.getItem('burlingo_lessons');
+  if (saved) {
+    try {
+      LESSONS = JSON.parse(saved);
+      console.log(`Загружено из кэша: ${LESSONS.length} уроков`);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
+}
+
+const ACHIEVEMENTS = [
+  { id: 'first_word', icon: '🌱', title: 'Первые шаги', desc: 'Выучи первое слово', check: u => u.wordsLearned >= 1 },
+  { id: 'streak_3', icon: '🔥', title: 'На огне', desc: '3 дня подряд', check: u => u.streak >= 3 },
+  { id: 'level_5', icon: '⭐', title: 'Пятёрка', desc: 'Достигни 5 уровня', check: u => u.level >= 5 },
+  { id: 'words_20', icon: '📖', title: 'Словарь', desc: 'Выучи 20 слов', check: u => u.wordsLearned >= 20 },
+  { id: 'lessons_5', icon: '🎓', title: 'Ученик', desc: 'Пройди 5 уроков', check: u => u.lessonsCompleted >= 5 },
+];
+
+// ============================================
+// 💾 СОСТОЯНИЕ И ХРАНИЛИЩЕ
+// ============================================
+
+const STORAGE_KEY = 'burlingo_user';
+
+let user = loadUser();
+let currentLesson = null;
+let currentWordIndex = 0;
+let lessonCorrect = 0;
+let lessonErrors = 0;
+
+function loadUser() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return JSON.parse(saved);
+  return {
+    name: '',
+    email: '',
+    xp: 0,
+    level: 1,
+    streak: 0,
+    lastVisit: null,
+    hearts: 5,
+    wordsLearned: 0,
+    lessonsCompleted: 0,
+    completedLessons: [],
+    achievements: [],
+  };
+}
+
+function saveUser() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+}
+
+// ============================================
+// 🔐 АВТОРИЗАЦИЯ
+// ============================================
+
+let authMode = 'login';
+
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    authMode = tab.dataset.tab;
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.getElementById('nameGroup').style.display = authMode === 'register' ? 'block' : 'none';
+    document.getElementById('authSubmit').textContent = authMode === 'login' ? 'Войти' : 'Создать аккаунт';
+  });
+});
+
+document.getElementById('authForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  
+  if (authMode === 'register') {
+    const name = document.getElementById('authName').value.trim() || 'Друг';
+    user.name = name;
+    user.email = email;
+    user.lastVisit = new Date().toDateString();
+    saveUser();
+    showToast('Добро пожаловать, ' + name + '!', 'success');
+  } else {
+    if (!user.email) {
+      showToast('Сначала зарегистрируйтесь', 'error');
+      return;
+    }
+    user.lastVisit = new Date().toDateString();
+    saveUser();
+    showToast('С возвращением!', 'success');
+  }
+  
+  updateStreak();
+  enterApp();
+});
+
+// ============================================
+// 📊 XP, УРОВНИ, СЕРИИ
+// ============================================
+
+function addXP(amount) {
+  user.xp += amount;
+  const newLevel = Math.floor(user.xp / 100) + 1;
+  if (newLevel > user.level) {
+    user.level = newLevel;
+    showToast('🎉 Новый уровень: ' + newLevel, 'success');
+  }
+  saveUser();
+  updateUI();
+}
+
+function updateStreak() {
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  
+  if (user.lastVisit === today) return; // уже сегодня
+  
+  if (user.lastVisit === yesterday) {
+    user.streak += 1;
+    showToast('🔥 Серия: ' + user.streak + ' дн.', 'success');
+  } else if (user.lastVisit !== today) {
+    user.streak = 1; // новый старт
+  }
+  user.lastVisit = today;
+  saveUser();
+}
+
+function markLessonVisit() {
+  // Засчитываем серию только если прошёл урок
+  const today = new Date().toDateString();
+  if (user.lastVisit !== today) {
+    user.streak += 1;
+    user.lastVisit = today;
+  }
+  saveUser();
+}
+
+// ============================================
+// 🎮 НАВИГАЦИЯ
+// ============================================
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.screen === screenId);
+  });
+  
+  const showNav = screenId !== 'authScreen' && screenId !== 'lessonScreen';
+  document.getElementById('bottomNav').style.display = showNav ? 'flex' : 'none';
+}
+
+function enterApp() {
+  showScreen('homeScreen');
+  renderDashboard();
+  updateUI();
+}
+
+function logout() {
+  if (confirm('Выйти из аккаунта?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    user = loadUser();
+    showScreen('authScreen');
+    document.getElementById('bottomNav').style.display = 'none';
+  }
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => showScreen(item.dataset.screen));
+});
+
+// ============================================
+// 🗺️ ДАШБОРД
+// ============================================
+
+function renderDashboard() {
+  const path = document.getElementById('lessonPath');
+  path.innerHTML = '';
+  
+  LESSONS.forEach((lesson, idx) => {
+    const isCompleted = user.completedLessons.includes(lesson.id);
+    const isAvailable = idx === 0 || user.completedLessons.includes(LESSONS[idx-1].id);
+    const isLocked = !isCompleted && !isAvailable;
+    
+    const node = document.createElement('div');
+    node.className = 'lesson-node';
+    if (isCompleted) node.classList.add('completed');
+    else if (isAvailable) node.classList.add('available');
+    else node.classList.add('locked');
+    
+    node.innerHTML = `
+      <span>${isCompleted ? '✓' : isLocked ? '🔒' : lesson.icon}</span>
+      <div class="lesson-label">
+        ${lesson.title}
+        <span class="team-badge team-${lesson.team}">К${lesson.team}</span>
+      </div>
+    `;
+    
+    if (!isLocked) {
+      node.addEventListener('click', () => startLesson(lesson));
+    }
+    
+    path.appendChild(node);
+  });
+}
+
+// ============================================
+// 📖 УРОК
+// ============================================
+
+function startLesson(lesson) {
+  currentLesson = lesson;
+  currentWordIndex = 0;
+  lessonCorrect = 0;
+  lessonErrors = 0;
+  showScreen('lessonScreen');
+  renderWord();
+}
+
+// ============================================
+// 📗 АВТОЗАГРУЗКА ИЗ КОНКРЕТНОГО ФАЙЛА
+// ============================================
+
+const EXCEL_FILE_PATH = 'data/burlingo_data.xlsx'; // ← путь к вашему файлу
+
+async function loadFromExcelFile() {
+  try {
+    const response = await fetch(EXCEL_FILE_PATH);
+    
+    if (!response.ok) {
+      throw new Error(`Файл не найден: ${EXCEL_FILE_PATH}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    
+    const lessons = [];
+    
+    workbook.SheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+      
+      if (rows.length === 0) return;
+      
+      // Парсим имя листа: "1_Приветствия" → id=1, title="Приветствия"
+      const match = sheetName.match(/^(\d+)_(.+)$/);
+      let lessonId, lessonTitle;
+      
+      if (match) {
+        lessonId = parseInt(match[1]);
+        lessonTitle = match[2];
+      } else {
+        lessonId = lessons.length + 1;
+        lessonTitle = sheetName;
+      }
+      
+      // Собираем слова
+      const words = rows.map(row => {
+        const word = {};
+        
+        // Поддержка разных названий колонок
+        Object.keys(row).forEach(key => {
+          const lowerKey = key.toLowerCase().trim();
+          
+          if (['buryat', 'бурятский', 'слово', 'word'].includes(lowerKey)) {
+            word.buryat = String(row[key]).trim();
+          }
+          else if (['russian', 'русский', 'перевод', 'translation'].includes(lowerKey)) {
+            word.russian = String(row[key]).trim();
+          }
+          else if (['audio', 'аудио', 'озвучка'].includes(lowerKey)) {
+            word.audio = row[key];
+          }
+          else if (['category', 'категория', 'группа'].includes(lowerKey)) {
+            word.category = row[key];
+          }
+          else if (['image', 'картинка', 'изображение'].includes(lowerKey)) {
+            word.image = row[key];
+          }
+        });
+        
+        return word;
+      }).filter(w => w.buryat && w.russian);
+      
+      if (words.length === 0) return;
+      
+      // Определяем команду по ID
+      const teamMap = {
+        1: 1, 2: 1, 3: 1, 4: 1,
+        5: 2, 6: 2, 7: 2,
+        8: 3, 9: 3, 10: 3,
+      };
+      
+      const iconMap = {
+        1: '👋', 2: '👨‍👩‍👧', 3: '🔢', 4: '🎨',
+        5: '🍎', 6: '🐎', 7: '🌲',
+        8: '💬', 9: '🎎', 10: '📜',
+      };
+      
+      lessons.push({
+        id: lessonId,
+        team: teamMap[lessonId] || 1,
+        icon: iconMap[lessonId] || '📚',
+        title: lessonTitle,
+        type: rows[0].category ? 'matching' : 'flashcard',
+        words: words,
+      });
+    });
+    
+    lessons.sort((a, b) => a.id - b.id);
+    
+    // Сохраняем в кэш
+    localStorage.setItem('burlingo_lessons', JSON.stringify(lessons));
+    
+    console.log(`✅ Загружено из ${EXCEL_FILE_PATH}: ${lessons.length} уроков`);
+    return lessons;
+    
+  } catch (error) {
+    console.error('❌ Ошибка загрузки Excel:', error);
+    showToast('Не удалось загрузить ' + EXCEL_FILE_PATH, 'error');
+    return null;
+  }
+}
+
+function renderWord() {
+  if (currentWordIndex >= currentLesson.words.length) {
+    finishLesson();
+    return;
+  }
+  
+  const word = currentLesson.words[currentWordIndex];
+  document.getElementById('wordBuryat').textContent = word.buryat;
+  //document.getElementById('wordRussian').textContent = word.russian;
+  document.getElementById('lessonProgress').style.width = 
+    (currentWordIndex / currentLesson.words.length * 100) + '%';
+  document.getElementById('lessonHearts').textContent = user.hearts;
+  
+  // Генерируем варианты ответов
+  const options = generateOptions(word);
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => checkAnswer(btn, opt, word.russian));
+    container.appendChild(btn);
+  });
+}
+
+function generateOptions(correctWord) {
+  // ШАГ 1: Собираем все переводы из ТЕКУЩЕГО урока
+  const lessonTranslations = currentLesson.words.map(w => w.russian);
+  
+  // ШАГ 2: Убираем дубликаты переводов
+  const uniqueTranslations = [...new Set(lessonTranslations)];
+  
+  // ШАГ 3: Убираем правильный ответ
+  const distractors = uniqueTranslations.filter(t => t !== correctWord.russian);
+  
+  // ШАГ 4: Если вариантов меньше 3 — берём все доступные
+  const numDistractors = Math.min(3, distractors.length);
+  const shuffled = distractors.sort(() => Math.random() - 0.5).slice(0, numDistractors);
+  
+  // ШАГ 5: Добавляем правильный ответ и перемешиваем
+  const options = [correctWord.russian, ...shuffled].sort(() => Math.random() - 0.5);
+  
+  return options;
+}
+
+function checkAnswer(btn, selected, correct) {
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach(b => b.disabled = true);
+  
+  if (selected === correct) {
+    btn.classList.add('correct');
+    lessonCorrect++;
+    user.wordsLearned++;
+    setTimeout(() => {
+      currentWordIndex++;
+      renderWord();
+    }, 800);
+  } else {
+    btn.classList.add('wrong');
+    // Подсвечиваем правильный
+    buttons.forEach(b => {
+      if (b.textContent === correct) b.classList.add('correct');
+    });
+    lessonErrors++;
+    user.hearts = Math.max(0, user.hearts - 1);
+    saveUser();
+    
+    setTimeout(() => {
+      currentWordIndex++;
+      renderWord();
+    }, 1500);
+  }
+}
+
+function finishLesson() {
+  const xpEarned = lessonCorrect * 10 + (lessonErrors === 0 ? 15 : 0);
+  
+  if (!user.completedLessons.includes(currentLesson.id)) {
+    user.completedLessons.push(currentLesson.id);
+    user.lessonsCompleted++;
+  }
+  
+  markLessonVisit();
+  addXP(xpEarned);
+  checkAchievements();
+  
+  // Показываем модалку
+  document.getElementById('modalIcon').textContent = lessonErrors === 0 ? '🏆' : '🎉';
+  document.getElementById('modalTitle').textContent = lessonErrors === 0 ? 'Идеально!' : 'Урок пройден!';
+  document.getElementById('modalText').textContent = 
+    `Правильно: ${lessonCorrect} · Ошибок: ${lessonErrors}`;
+  document.getElementById('modalXp').textContent = '+' + xpEarned + ' XP';
+  document.getElementById('resultModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('resultModal').classList.remove('show');
+  showScreen('homeScreen');
+  renderDashboard();
+  updateUI();
+}
+
+function exitLesson() {
+  if (confirm('Выйти из урока? Прогресс не сохранится.')) {
+    showScreen('homeScreen');
+  }
+}
+
+// ============================================
+// 🔊 АУДИОПЛЕЕР
+// ============================================
+
+function speakWord() {
+  const text = document.getElementById('wordBuryat').textContent;
+  
+  // Пробуем Web Speech API
+  if ('speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ru-RU'; // fallback, бурятский TTS в браузерах редкость
+    utter.rate = 0.8;
+    utter.pitch = 1;
+    speechSynthesis.speak(utter);
+    showToast('🔊 ' + text);
+  } else {
+    showToast('Аудио недоступно в этом браузере', 'error');
+  }
+  
+  // В продакшене здесь будет:
+  // new Audio(`/audio/${currentLesson.id}/${currentWordIndex}.mp3`).play();
+}
+
+// ============================================
+// 🏆 ДОСТИЖЕНИЯ
+// ============================================
+
+function checkAchievements() {
+  ACHIEVEMENTS.forEach(a => {
+    if (!user.achievements.includes(a.id) && a.check(user)) {
+      user.achievements.push(a.id);
+      showToast('🏆 Достижение: ' + a.title, 'success');
+    }
+  });
+  saveUser();
+}
+
+function renderAchievements() {
+  const list = document.getElementById('achievementsList');
+  list.innerHTML = '';
+  ACHIEVEMENTS.forEach(a => {
+    const unlocked = user.achievements.includes(a.id);
+    list.innerHTML += `
+      <div class="achievement ${unlocked ? '' : 'locked'}">
+        <div class="achievement-icon">${a.icon}</div>
+        <div class="achievement-info">
+          <div class="achievement-title">${a.title}</div>
+          <div class="achievement-desc">${a.desc}</div>
+        </div>
+        <div>${unlocked ? '✅' : '🔒'}</div>
+      </div>
+    `;
+  });
+}
+
+// ============================================
+// 🎨 UI ОБНОВЛЕНИЯ
+// ============================================
+
+function updateUI() {
+  // Топбар
+  document.getElementById('streakCount').textContent = user.streak;
+  document.getElementById('xpCount').textContent = user.xp;
+  document.getElementById('heartsCount').textContent = user.hearts;
+  
+  // Welcome card
+  document.getElementById('userName').textContent = user.name || 'Друг';
+  document.getElementById('userLevel').textContent = user.level;
+  const xpInLevel = user.xp % 100;
+  document.getElementById('xpToNext').textContent = 100 - xpInLevel;
+  document.getElementById('levelBar').style.width = xpInLevel + '%';
+  
+  // Профиль
+  document.getElementById('profileAvatar').textContent = (user.name || 'У')[0].toUpperCase();
+  document.getElementById('profileName').textContent = user.name || 'Пользователь';
+  document.getElementById('profileLevel').textContent = user.level;
+  document.getElementById('statXp').textContent = user.xp;
+  document.getElementById('statStreak').textContent = user.streak;
+  document.getElementById('statWords').textContent = user.wordsLearned;
+  document.getElementById('statLessons').textContent = user.lessonsCompleted;
+  
+  renderAchievements();
+}
+
+// ============================================
+// 🍞 TOAST
+// ============================================
+
+function showToast(message, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ============================================
+// 🚀 ИНИЦИАЛИЗАЦИЯ
+// ============================================
+
+(function init() {
+  // Если пользователь уже залогинен — сразу в приложение
+  if (user.email) {
+    updateStreak();
+    enterApp();
+  }
+})();
+</script>
+
+</body>
+</html>
