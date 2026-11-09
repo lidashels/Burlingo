@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # ВСТАВЬТЕ СЮДА ТОКЕН ОТ @BotFather
 BOT_TOKEN = "9107764668:AAFBCTLLUncRawAXgB7TvIEV13KWK8jorVU"
 # URL, где будет размещен ваш HTML-файл (например, через GitHub Pages или Vercel)
-WEBAPP_URL = "https://lidashels.github.io/Burlingo/" 
+WEBAPP_URL = "https://lidashels.github.io/Burlingo/burlingo.html" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
