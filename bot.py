@@ -7,9 +7,9 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, W
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ВСТАВЬТЕ СЮДА ТОКЕН ОТ @BotFather
-BOT_TOKEN = "ВАШ_ТОКЕН_БОТА"
+BOT_TOKEN = "9107764668:AAFBCTLLUncRawAXgB7TvIEV13KWK8jorVU"
 # URL, где будет размещен ваш HTML-файл (например, через GitHub Pages или Vercel)
-WEBAPP_URL = "https://ваш-домен.com/burlingo.html" 
+WEBAPP_URL = "https://lidashels.github.io/Burlingo/" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
